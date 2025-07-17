@@ -24,6 +24,7 @@ fetch("/api" + window.location.pathname).then(res => {
 }).then(data => {
     if (data.title) title = data.title;
     if (data.messages) messages = data.messages;
+    draw();
 }).then(update).catch(e => {
     error = e.message;
 });
@@ -37,6 +38,7 @@ async function update() {
     } else {
         error = await res.text();
     }
+    draw();
     update();
 }
 
@@ -272,9 +274,9 @@ document.addEventListener("paste", (e) => {
     draw();
 });
 
-setInterval(() => {
-    blinkState = !blinkState;
-    draw();
-}, 500);
+// setInterval(() => {
+//     blinkState = !blinkState;
+//     draw();
+// }, 500);
 
 draw();
