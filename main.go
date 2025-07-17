@@ -27,7 +27,14 @@ func main() {
 		update := <-ch
 		json.NewEncoder(w).Encode(update)
 	})
-	http.HandleFunc("/chat", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/chat.js", func(w http.ResponseWriter, r *http.Request) {
+		f, err := os.Open("chat.js")
+		if err != nil {
+			panic(err)
+		}
+		io.Copy(w, f)
+	})
+	http.HandleFunc("/chats/{chatID}", func(w http.ResponseWriter, r *http.Request) {
 		f, err := os.Open("chat.html")
 		if err != nil {
 			panic(err)
@@ -80,15 +87,15 @@ func main() {
 }
 
 type ChatMessage struct {
-	From        string
-	Text        string
-	SentAt      string
-	DeliveredAt string
+	From        string `json:"from"`
+	Text        string `json:"text"`
+	SentAt      string `json:"sentAt"`
+	DeliveredAt string `json:"deliveredAt"`
 }
 
 type Chat struct {
-	Title    string
-	Messages []ChatMessage
+	Title    string        `json:"title"`
+	Messages []ChatMessage `json:"messages"`
 }
 
 func listJSONFiles(path string) ([]string, error) {
