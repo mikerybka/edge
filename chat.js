@@ -9,22 +9,33 @@ let blinkState = true;
 let selectingState = false;
 let messages = [];
 let scrollOffset = 0;
+let error;
 
-fetch("/api"+window.location.pathname).then(res => {
-    return res.json();
+fetch("/api" + window.location.pathname).then(res => {
+    if (res.ok) {
+        return res.json()
+    } else {
+        res.text().then(text => {
+            error = `${res.status}: ${text}`;
+        }).catch(e => {
+            error = res.statusText;
+        });
+    }
 }).then(data => {
     if (data.title) title = data.title;
     if (data.messages) messages = data.messages;
-}).then(update);
+}).then(update).catch(e => {
+    error = e.message;
+});
 
 async function update() {
-    const res = await fetch("/api"+window.location.pathname+"/update");
+    const res = await fetch("/api" + window.location.pathname + "/update");
     if (res.ok) {
         const data = await res.json()
         if (data.title) title = data.title;
         if (data.messages) messages = data.messages;
     } else {
-        console.error(res);
+        error = await res.text();
     }
     update();
 }
@@ -140,6 +151,12 @@ function draw() {
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
+    // Render any error
+    if (error) {
+        ctx.fillText("ERROR: " + error, 0, 0)
+        return
+    }
+
     // Draw input box
     ctx.fillStyle = inputBoxColor;
     ctx.fillRect(inputBoxX, inputBoxY, inputBoxWidth, inputBoxHeight);
@@ -222,8 +239,8 @@ document.addEventListener("keydown", (e) => {
     } else if (e.key === "Enter") {
         if (inputText.trim()) {
             const now = new Date();
-            const msg = { from: userID, text: inputText.trim(), sentAt: JSON.stringify(now)};
-            fetch("/api"+window.location.pathname, {
+            const msg = { from: userID, text: inputText.trim(), sentAt: JSON.stringify(now) };
+            fetch("/api" + window.location.pathname, {
                 method: "POST",
                 body: JSON.stringify(msg),
             });
