@@ -224,7 +224,11 @@ document.addEventListener("keydown", (e) => {
     if (e.ctrlKey || e.metaKey) return;
 
     if (e.key === "ArrowLeft") {
-        if (cursorIndex > 0) cursorIndex--;
+        if (cursorIndex > 0) {
+            cursorIndex--
+        } else {
+            window.location.pathname = "/chats"
+        }
     } else if (e.key === "ArrowRight") {
         if (cursorIndex < inputText.length) cursorIndex++;
     } else if (e.key === "Backspace") {

@@ -36,6 +36,20 @@ func main() {
 		}
 		io.Copy(w, f)
 	})
+	http.HandleFunc("GET /chats.js", func(w http.ResponseWriter, r *http.Request) {
+		f, err := os.Open("chats.js")
+		if err != nil {
+			panic(err)
+		}
+		io.Copy(w, f)
+	})
+	http.HandleFunc("GET /chats", func(w http.ResponseWriter, r *http.Request) {
+		f, err := os.Open("chats.html")
+		if err != nil {
+			panic(err)
+		}
+		io.Copy(w, f)
+	})
 	http.HandleFunc("GET /chats/{chatID}", func(w http.ResponseWriter, r *http.Request) {
 		f, err := os.Open("chat.html")
 		if err != nil {
@@ -53,7 +67,7 @@ func main() {
 		json.NewEncoder(w).Encode(ids)
 	})
 	http.HandleFunc("GET /api/chats/{chatID}", func(w http.ResponseWriter, r *http.Request) {
-		path := filepath.Join(dataDir, "chats", r.PathValue("chatID"))
+		path := filepath.Join(dataDir, "chats", r.PathValue("chatID")) + ".json"
 		f, err := os.Open(path)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
@@ -83,7 +97,7 @@ func main() {
 		chatLocks[chatID].Lock()
 		defer chatLocks[chatID].Unlock()
 
-		path := filepath.Join(dataDir, "chats", chatID)
+		path := filepath.Join(dataDir, "chats", chatID) + ".json"
 		f, err := os.Open(path)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
@@ -103,29 +117,6 @@ func main() {
 
 		chat.Messages = append(chat.Messages, msg)
 
-		err = util.WriteJSONFile(path, chat)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		go func() {
-			for subID, watcher := range chatWatchers[chatID] {
-				watcher <- chat
-				close(watcher)
-				delete(chatWatchers[chatID], subID)
-			}
-		}()
-	})
-	http.HandleFunc("PUT /api/chats/{chatID}", func(w http.ResponseWriter, r *http.Request) {
-		chat := &Chat{}
-		err := json.NewDecoder(r.Body).Decode(chat)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		chatID := r.PathValue("chatID")
-		path := filepath.Join(dataDir, "chats", chatID)
 		err = util.WriteJSONFile(path, chat)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -164,8 +155,8 @@ func listJSONFiles(path string) ([]string, error) {
 		return nil, err
 	}
 	for _, e := range entries {
-		if e.IsDir() && strings.HasSuffix(e.Name(), ".json") {
-			res = append(res, e.Name())
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".json") {
+			res = append(res, strings.TrimSuffix(e.Name(), ".json"))
 		}
 	}
 	return res, nil
