@@ -258,6 +258,8 @@ document.addEventListener("keydown", (e) => {
         inputText = inputText.slice(0, cursorIndex) + e.key + inputText.slice(cursorIndex);
         cursorIndex++;
     }
+
+    draw();
 });
 
 document.addEventListener("paste", (e) => {
@@ -267,6 +269,7 @@ document.addEventListener("paste", (e) => {
         inputText = inputText.slice(0, cursorIndex) + paste + inputText.slice(cursorIndex);
         cursorIndex += paste.length;
     }
+    draw();
 });
 
 setInterval(() => {
