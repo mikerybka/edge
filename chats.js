@@ -39,6 +39,7 @@ function draw() {
     const titleBarHeight = margin * 2 + titleFontHeight + margin * 2;
     const titleBarColor = "#ddd"
     const fontColor = "black"
+    const backgroundColor = "white";
     const lineSpacing = (margin + padding + fontHeight + padding + margin) / 2;
     const unselectedListItemColor = "white"
     const unselectedListItemFontColor = "black"
@@ -47,6 +48,8 @@ function draw() {
 
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, width, height)
 
     // Render any error
     if (error) {
