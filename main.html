@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>16 Lines 15px High Stripes</title>
+  <title>Chat</title>
   <style>
     canvas {
       display: block;
@@ -21,6 +21,7 @@
     const canvas = document.getElementById('stripedCanvas');
     const ctx = canvas.getContext('2d');
     ctx.textBaseline = "top";
+    let title = "ChatGPT"
     let inputText = "";
     let cursorIndex = 0;
     let blinkState = true;
@@ -41,9 +42,16 @@
           lines[lines.length - 1] = testLine;
         }
       });
-      return lines
+      return lines;
     }
 
+    function countLines(chat) {
+      let total = 0;
+      chat.forEach(msg => {
+        total += msg.lines.length+1;
+      })
+      return total;
+    }
 
     // Draw rounded rectangle (for chat bubbles)
     function drawRoundedRect(x, y, w, h, r, fillStyle) {
@@ -59,6 +67,17 @@
       ctx.lineTo(x, y + r);
       ctx.quadraticCurveTo(x, y, x + r, y);
       ctx.fill();
+    }
+
+    function calculateBubbleWidth(msg, padding) {
+      let widestLine = 0;
+      msg.lines.forEach(line => {
+        const w = ctx.measureText(line.trim()).width;
+        if (w > widestLine) {
+          widestLine = w;
+        }
+      });
+      return widestLine + padding * 2;
     }
 
     function calculateCursorCoordinates(inputLines, cursorIndex) {
@@ -81,12 +100,26 @@
       const width = canvas.width;
       const height = canvas.height;
       const fontHeight = 14 * width / baseWidth;
+      ctx.font = `${fontHeight}px sans-serif`;
+      ctx.textAlign = "left";
       const margin = 4 * width / baseWidth;
       const padding = 4 * width / baseWidth;
       const titleFontHeight = padding + fontHeight + padding;
+      const titleBarHeight = margin * 2 + titleFontHeight + margin * 2;
+      const titleBarColor = "#ddd"
+      const fontColor = "black"
       const lineSpacing = (margin + padding + fontHeight + padding + margin) / 2;
+      const maxMessageTextWidth = width - margin - margin - padding - padding - margin;
+      const chat = messages.map(m => {
+        return {
+          from: m.from,
+          lines: calculateLines(maxMessageTextWidth, m.text),
+        };
+      });
       const maxInputTextWidth = width - margin - padding - padding - margin;
       const inputLines = calculateLines(maxInputTextWidth, inputText);
+      const sentBubbleColor = "#aaa";
+      const recievedBubbleColor = "#ccc";
       const inputBoxColor = "#bbb";
       const inputBubbleColor = "white";
       const inputBoxWidth = width;
@@ -101,17 +134,11 @@
       const inputPadding = padding + margin;
       const {cursorRow, cursorCol} = calculateCursorCoordinates(inputLines, cursorIndex);
       const beforeCursor = inputLines[cursorRow].trimStart(' ').slice(0, cursorCol+1);
-      ctx.font = `${fontHeight}px sans-serif`;
       const cursorX = inputPadding + ctx.measureText(beforeCursor).width;
       const cursorY = height - inputBoxHeight + margin + padding + cursorRow * lineSpacing;
-      const maxMessageTextWidth = width - margin - margin - padding - padding - margin;
 
       // Clear canvas
       ctx.clearRect(0, 0, width, height);
-
-      // Draw title bar
-
-      // Draw chat
 
       // Draw input box
       ctx.fillStyle = inputBoxColor;
@@ -136,6 +163,44 @@
           ctx.strokeStyle = "#000";
           ctx.stroke();
       }
+
+      // Draw chat
+      let y = height - inputBoxHeight;
+      const r = margin;
+      for (let i = chat.length - 1; i >= 0; i--) {
+        const msg = chat[i];
+        const c = msg.from === "me" ? sentBubbleColor : recievedBubbleColor;
+        const w = calculateBubbleWidth(msg, padding);
+        const x = msg.from === "me" ? width - margin - w : margin;
+        y -= lineSpacing;
+        y -= msg.lines.length * lineSpacing;
+        const h = padding + msg.lines.length * lineSpacing + padding;
+        if (y + h < titleBarHeight) {
+          break;
+        }
+        drawRoundedRect(x, y, w, h, r, c);
+        if (msg.from === "me") {
+          ctx.textAlign = "right";
+          msg.lines.forEach((line, i) => {
+            ctx.fillStyle = fontColor;
+            ctx.fillText(line.trim(), width-margin-padding, y + padding + i * lineSpacing);
+          })
+        } else {
+          ctx.textAlign = "left";
+          msg.lines.forEach((line, i) => {
+            ctx.fillStyle = fontColor;
+            ctx.fillText(line.trim(), x + padding, y + padding + i * lineSpacing);
+          })
+        }
+      }
+
+      // Draw title bar
+      ctx.fillStyle = titleBarColor;
+      ctx.fillRect(0, 0, width, titleBarHeight);
+      ctx.font = `bold ${titleFontHeight}px sans-serif`;
+      ctx.textAlign = "left";
+      ctx.fillStyle = fontColor;
+      ctx.fillText(title, margin*2, margin*2);
     }
 
     document.addEventListener("keydown", (e) => {
