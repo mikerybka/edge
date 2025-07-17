@@ -23,10 +23,33 @@
     const fontSize = 13;
     ctx.font = `${fontSize}px sans-serif`;
     ctx.textBaseline = "middle";
-    for (let i = 0; i < stripesCount; i++) {
-      const textY = i * stripeHeight
-      ctx.fillText(`Line ${i + 1}: This is a line so long that it runs past the end of the page`, 10, textY);
-    }
+    const lines = [
+        "Line 0",
+        "Line 1",
+        "Line 2",
+        "Line 3",
+        "Line 4",
+        "Line 5",
+        "Line 6",
+        "Line 7",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+        "Line 12",
+        "Line 13",
+        "Line 14",
+        "Line 15",
+        "Line 16",
+    ];
+    lines.forEach((line, i) => {
+        const textY = i * stripeHeight
+        ctx.fillText(line, 10, textY);
+    })
+    // for (let i = 0; i < stripesCount; i++) {
+    //   const textY = i * stripeHeight
+    //   ctx.fillText(`Line ${i + 1}: This is a line so long that it runs past the end of the page`, 10, textY);
+    // }
   </script>
 </body>
 </html>
