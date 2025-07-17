@@ -113,6 +113,7 @@ function draw() {
     const fontHeight = 14 * width / baseWidth;
     ctx.font = `${fontHeight}px sans-serif`;
     ctx.textAlign = "left";
+    const backgroundColor = "white";
     const margin = 4 * width / baseWidth;
     const padding = 4 * width / baseWidth;
     const titleFontHeight = padding + fontHeight + padding;
@@ -150,6 +151,8 @@ function draw() {
 
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, width, height)
 
     // Render any error
     if (error) {
