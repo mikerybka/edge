@@ -18,25 +18,13 @@
   <script>
     const canvas = document.getElementById('stripedCanvas');
     const ctx = canvas.getContext('2d');
-
     const stripeHeight = 15;
     const stripesCount = 16;
     const fontSize = 13;
-
     ctx.font = `${fontSize}px sans-serif`;
     ctx.textBaseline = "middle";
-
     for (let i = 0; i < stripesCount; i++) {
-      // Alternate colors
-    //   ctx.fillStyle = (i % 2 === 0) ? 'blue' : 'white';
-    //   ctx.fillRect(0, i * stripeHeight, canvas.width, stripeHeight);
-
-      // Text color - white on blue, black on white
-    //   ctx.fillStyle = (i % 2 === 0) ? 'white' : 'black';
-
-      // Y coordinate is middle of the stripe
-      const textY = i * stripeHeight// + Math.floor(stripeHeight / 2);
-
+      const textY = i * stripeHeight
       ctx.fillText(`Line ${i + 1}: This is a line so long that it runs past the end of the page`, 10, textY);
     }
   </script>
