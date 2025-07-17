@@ -8,11 +8,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/mikerybka/util"
 )
 
 var chatWatchers = map[string]map[string]chan *Chat{} // map of chatIDs to subscriptionIDs to channels of Chat pointers
+var chatLocks = map[string]*sync.Mutex{}
 
 func main() {
 	dataDir := util.RequireEnvVar("DATA_DIR")
@@ -27,14 +29,14 @@ func main() {
 		update := <-ch
 		json.NewEncoder(w).Encode(update)
 	})
-	http.HandleFunc("/chat.js", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("GET /chat.js", func(w http.ResponseWriter, r *http.Request) {
 		f, err := os.Open("chat.js")
 		if err != nil {
 			panic(err)
 		}
 		io.Copy(w, f)
 	})
-	http.HandleFunc("/chats/{chatID}", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("GET /chats/{chatID}", func(w http.ResponseWriter, r *http.Request) {
 		f, err := os.Open("chat.html")
 		if err != nil {
 			panic(err)
@@ -64,6 +66,57 @@ func main() {
 		defer f.Close()
 		io.Copy(w, f)
 	})
+	http.HandleFunc("POST /api/chats/{chatID}", func(w http.ResponseWriter, r *http.Request) {
+		msg := ChatMessage{}
+		err := json.NewDecoder(r.Body).Decode(&msg)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		r.Body.Close()
+
+		chatID := r.PathValue("chatID")
+
+		if chatLocks[chatID] == nil {
+			chatLocks[chatID] = &sync.Mutex{}
+		}
+		chatLocks[chatID].Lock()
+		defer chatLocks[chatID].Unlock()
+
+		path := filepath.Join(dataDir, "chats", chatID)
+		f, err := os.Open(path)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			}
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer f.Close()
+		chat := &Chat{}
+		err = json.NewDecoder(f).Decode(chat)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		chat.Messages = append(chat.Messages, msg)
+
+		err = util.WriteJSONFile(path, chat)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		go func() {
+			for subID, watcher := range chatWatchers[chatID] {
+				watcher <- chat
+				close(watcher)
+				delete(chatWatchers[chatID], subID)
+			}
+		}()
+	})
 	http.HandleFunc("PUT /api/chats/{chatID}", func(w http.ResponseWriter, r *http.Request) {
 		chat := &Chat{}
 		err := json.NewDecoder(r.Body).Decode(chat)
@@ -78,19 +131,22 @@ func main() {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		for subID, watcher := range chatWatchers[chatID] {
-			watcher <- chat
-			delete(chatWatchers[chatID], subID)
-		}
+
+		go func() {
+			for subID, watcher := range chatWatchers[chatID] {
+				watcher <- chat
+				close(watcher)
+				delete(chatWatchers[chatID], subID)
+			}
+		}()
 	})
 	panic(http.ListenAndServe(":3005", nil))
 }
 
 type ChatMessage struct {
-	From        string `json:"from"`
-	Text        string `json:"text"`
-	SentAt      string `json:"sentAt"`
-	DeliveredAt string `json:"deliveredAt"`
+	From   string `json:"from"`
+	Text   string `json:"text"`
+	SentAt string `json:"sentAt"`
 }
 
 type Chat struct {

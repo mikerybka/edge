@@ -1,6 +1,7 @@
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 ctx.textBaseline = "top";
+let userID = "me";
 let title = ""
 let inputText = "";
 let cursorIndex = 0;
@@ -14,7 +15,19 @@ fetch("/api"+window.location.pathname).then(res => {
 }).then(data => {
     if (data.title) title = data.title;
     if (data.messages) messages = data.messages;
-})
+}).then(update);
+
+async function update() {
+    const res = await fetch("/api"+window.location.pathname+"/update");
+    if (res.ok) {
+        const data = await res.json()
+        if (data.title) title = data.title;
+        if (data.messages) messages = data.messages;
+    } else {
+        console.error(res);
+    }
+    update();
+}
 
 function calculateLines(maxWidth, inputText) {
     let lines = [""];
@@ -156,9 +169,9 @@ function draw() {
     const r = margin;
     for (let i = chat.length - 1; i >= 0; i--) {
         const msg = chat[i];
-        const c = msg.from === "me" ? sentBubbleColor : recievedBubbleColor;
+        const c = msg.from === userID ? sentBubbleColor : recievedBubbleColor;
         const w = calculateBubbleWidth(msg, padding);
-        const x = msg.from === "me" ? width - margin - w : margin;
+        const x = msg.from === userID ? width - margin - w : margin;
         y -= lineSpacing;
         y -= msg.lines.length * lineSpacing;
         const h = padding + msg.lines.length * lineSpacing + padding;
@@ -166,7 +179,7 @@ function draw() {
             break;
         }
         drawRoundedRect(x, y, w, h, r, c);
-        if (msg.from === "me") {
+        if (msg.from === userID) {
             ctx.textAlign = "right";
             msg.lines.forEach((line, i) => {
                 ctx.fillStyle = fontColor;
@@ -208,7 +221,12 @@ document.addEventListener("keydown", (e) => {
         }
     } else if (e.key === "Enter") {
         if (inputText.trim()) {
-            messages.push({ from: "me", text: inputText.trim() });
+            const now = new Date();
+            const msg = { from: userID, text: inputText.trim(), sentAt: JSON.stringify(now)};
+            fetch("/api"+window.location.pathname, {
+                method: "POST",
+                body: JSON.stringify(msg),
+            });
             inputText = "";
             cursorIndex = 0;
         }
