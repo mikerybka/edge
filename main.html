@@ -20,97 +20,23 @@
   <script>
     const canvas = document.getElementById('stripedCanvas');
     const ctx = canvas.getContext('2d');
-    const stripeHeight = canvas.height / 16; // 15
-    const fontSize = stripeHeight / 15 * 13;
-    const maxWidth = 300;
-    ctx.font = `${fontSize}px sans-serif`;
     ctx.textBaseline = "top";
     let inputText = "";
     let cursorIndex = 0;
     let blinkState = true;
+    let selectingState = false;
     let messages = [];
     let scrollOffset = 0;
-    // let lines = [
-    //     "",
-    //     "",
-    //     "Hey, how's it going?",
-    //     "",
-    //     "",
-    //     "Not bad, yourself?",
-    //     "",
-    //     "",
-    //     "I'm good, thanks.",
-    //     "",
-    //     "",
-    //     "How's the wife and kids?",
-    //     "",
-    //     "",
-    //     "They're great! Just got back from vacation",
-    //     "in the Poconos.",
-    //     "",
-    // ];
-
-    // function calculateLines(inputText, messages) {
-    //     const lines = [];
-
-    //     // Calculate input text area
-    //     let workingLine = "";
-    //     inputText.split(" ").forEach((word, i) => {
-    //         const testLine = workingLine + " " + word + " ";
-    //         const metrics = ctx.measureText(testLine);
-    //         const testWidth = metrics.width;
-    //         if (testWidth > maxWidth && i > 0) {
-    //             lines.push({text: workingLine.trim(), align: "left"});
-    //             workingLine = "";
-    //         } else {
-    //             workingLine = testLine;
-    //         }
-    //     });
-    //     lines.push({text: workingLine.trim(), align: "left"});
-    //     lines.push({text: "", align: "left"});
-    //     lines.reverse();
-
-    //     // Calculate messages
-    //     Array.from(messages.slice(-5)).reverse().forEach(msg => {
-    //         const align = msg.from === "me" ? "right" : "left";
-    //         const msgLines = [];
-    //         workingLine = ""
-    //         msg.text.split(" ").forEach((word, i) => {
-    //             const testLine = workingLine + " " + word + " ";
-    //             const metrics = ctx.measureText(testLine);
-    //             const testWidth = metrics.width;
-    //             if (testWidth > maxWidth && i > 0) {
-    //                 msgLines.push({text: workingLine.trim(), align});
-    //                 workingLine = "";
-    //             } else {
-    //                 workingLine = testLine
-    //             }
-    //         });
-    //         msgLines.reverse().forEach(line => {
-    //             lines.push(line);
-    //         })
-    //         lines.push({text: "", align});
-    //         lines.push({text: "", align});
-    //     });
-
-    //     if (lines.length < 17) {
-    //         for (let i = lines.length; i < 17; i++) {
-    //             lines.push({text: "", align: "left"})
-    //         }
-    //     }
-
-    //     return lines.slice(0, 17).reverse()
-    // }
 
     function calculateLines(maxWidth, inputText) {
       let lines = [""];
       inputText.split(" ").forEach((word, i) => {
         const lastLine = lines[lines.length - 1]
-        const testLine = (lastLine + " " + word).trim();
+        const testLine = (lastLine + " " + word);
         const metrics = ctx.measureText(testLine);
         const testWidth = metrics.width;
         if (testWidth > maxWidth && i > 0) {
-          lines = [...lines, word.trim()];
+          lines = [...lines, word];
         } else {
           lines[lines.length - 1] = testLine;
         }
@@ -135,8 +61,21 @@
       ctx.fill();
     }
 
+    function calculateCursorCoordinates(inputLines, cursorIndex) {
+      let cursorRow = 0;
+      let cursorCol = 0;
+      for (let i = 0; i < cursorIndex; i++) {
+        if (inputLines[cursorRow].length > cursorCol) {
+          cursorCol++;
+        } else {
+          cursorRow++;
+          cursorCol = 0;
+        }
+      }
+      return {cursorRow, cursorCol};
+    }
+
     function draw() {
-      // Calculate coordinates
       const baseWidth = 320;
       const baseHeight = 240;
       const width = canvas.width;
@@ -144,6 +83,7 @@
       const fontHeight = 14 * width / baseWidth;
       const margin = 4 * width / baseWidth;
       const padding = 4 * width / baseWidth;
+      const titleFontHeight = padding + fontHeight + padding;
       const lineSpacing = (margin + padding + fontHeight + padding + margin) / 2;
       const maxInputTextWidth = width - margin - padding - padding - margin;
       const inputLines = calculateLines(maxInputTextWidth, inputText);
@@ -158,12 +98,20 @@
       const inputBubbleY = inputBoxY + margin;
       const inputBubbleWidth = inputBoxWidth - margin - margin;
       const inputBubbleHeight = inputBoxHeight - margin - margin;
-
+      const inputPadding = padding + margin;
+      const {cursorRow, cursorCol} = calculateCursorCoordinates(inputLines, cursorIndex);
+      const beforeCursor = inputLines[cursorRow].trimStart(' ').slice(0, cursorCol+1);
+      ctx.font = `${fontHeight}px sans-serif`;
+      const cursorX = inputPadding + ctx.measureText(beforeCursor).width;
+      const cursorY = height - inputBoxHeight + margin + padding + cursorRow * lineSpacing;
       const maxMessageTextWidth = width - margin - margin - padding - padding - margin;
-
 
       // Clear canvas
       ctx.clearRect(0, 0, width, height);
+
+      // Draw title bar
+
+      // Draw chat
 
       // Draw input box
       ctx.fillStyle = inputBoxColor;
@@ -173,42 +121,21 @@
       drawRoundedRect(inputBubbleX, inputBubbleY, inputBubbleWidth, inputBubbleHeight, bubbleRadius, inputBubbleColor);
 
       // Draw input lines
+      ctx.fillStyle = 'black';
       for (let i = 0; i < inputLines.length; i++) {
         const x = inputBubbleX + padding;
         const y = inputBubbleY + padding + (i * lineSpacing);
-        console.log({y, inputBubbleY})
-        ctx.fillStyle = 'black';
-        ctx.fillText(inputLines[i], x, y);
+        ctx.fillText(inputLines[i].trim(), x, y);
       }
-      // drawInputLines();
-
-      // const lines = calculateLines(inputText, messages);
-      // lines.forEach((line, i) => {
-      //     const textY = i * stripeHeight;
-      //     if (line.align === "right") {
-      //         ctx.textAlign = "right";
-      //         ctx.fillText(line.text, width-8, textY);
-      //     } else {
-      //         ctx.textAlign = "left";
-      //         ctx.fillText(line.text, 8, textY);
-      //     }
-      // })
-
-      // Draw messages
-      // drawMessages();
 
       // Draw blinking cursor
-      // if (blinkState) {
-      //     const inputPadding = 8;
-
-      //     const beforeCursor = inputText.slice(0, cursorIndex);
-      //     const cursorX = inputPadding + ctx.measureText(beforeCursor).width;
-      //     ctx.beginPath();
-      //     ctx.moveTo(cursorX, canvas.height - inputBoxHeight + 6);
-      //     ctx.lineTo(cursorX, canvas.height - inputPadding - 6);
-      //     ctx.strokeStyle = "#000";
-      //     ctx.stroke();
-      // }
+      if (blinkState) {
+          ctx.beginPath();
+          ctx.moveTo(cursorX, cursorY);
+          ctx.lineTo(cursorX, cursorY+fontHeight);
+          ctx.strokeStyle = "#000";
+          ctx.stroke();
+      }
     }
 
     document.addEventListener("keydown", (e) => {
