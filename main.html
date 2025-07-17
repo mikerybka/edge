@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>16 Lines 15px High Stripes</title>
@@ -13,6 +14,7 @@
     }
   </style>
 </head>
+
 <body>
   <canvas id="stripedCanvas" width="320" height="240"></canvas>
   <script>
@@ -22,7 +24,7 @@
     const fontSize = stripeHeight / 15 * 13;
     const maxWidth = 300;
     ctx.font = `${fontSize}px sans-serif`;
-    ctx.textBaseline = "middle";
+    ctx.textBaseline = "top";
     let inputText = "";
     let cursorIndex = 0;
     let blinkState = true;
@@ -50,7 +52,7 @@
 
     // function calculateLines(inputText, messages) {
     //     const lines = [];
-        
+
     //     // Calculate input text area
     //     let workingLine = "";
     //     inputText.split(" ").forEach((word, i) => {
@@ -67,7 +69,7 @@
     //     lines.push({text: workingLine.trim(), align: "left"});
     //     lines.push({text: "", align: "left"});
     //     lines.reverse();
-        
+
     //     // Calculate messages
     //     Array.from(messages.slice(-5)).reverse().forEach(msg => {
     //         const align = msg.from === "me" ? "right" : "left";
@@ -100,51 +102,113 @@
     //     return lines.slice(0, 17).reverse()
     // }
 
-    function calculateLines() {
-        // TODO
+    function calculateLines(maxWidth, inputText) {
+      let lines = [""];
+      inputText.split(" ").forEach((word, i) => {
+        const lastLine = lines[lines.length - 1]
+        const testLine = (lastLine + " " + word).trim();
+        const metrics = ctx.measureText(testLine);
+        const testWidth = metrics.width;
+        if (testWidth > maxWidth && i > 0) {
+          lines = [...lines, word.trim()];
+        } else {
+          lines[lines.length - 1] = testLine;
+        }
+      });
+      return lines
+    }
+
+
+    // Draw rounded rectangle (for chat bubbles)
+    function drawRoundedRect(x, y, w, h, r, fillStyle) {
+      ctx.fillStyle = fillStyle;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.fill();
     }
 
     function draw() {
-        const baseWidth = 160;
-        ctx.clearRect(0, 0, width, height);
-        const maxInputTextWidth = width * 137/baseWidth;
-        const maxMessageTextWidth = width * 150/baseWidth;
-        const margin = 1 * width/baseWidth;
-        const padding = 3 * width/baseWidth;
-        
-        // Clear canvas
-        const width = canvas.width;
-        const height = canvas.height;
+      // Calculate coordinates
+      const baseWidth = 320;
+      const baseHeight = 240;
+      const width = canvas.width;
+      const height = canvas.height;
+      const fontHeight = 14 * width / baseWidth;
+      const margin = 4 * width / baseWidth;
+      const padding = 4 * width / baseWidth;
+      const lineSpacing = (margin + padding + fontHeight + padding + margin) / 2;
+      const maxInputTextWidth = width - margin - padding - padding - margin;
+      const inputLines = calculateLines(maxInputTextWidth, inputText);
+      const inputBoxColor = "#bbb";
+      const inputBubbleColor = "white";
+      const inputBoxWidth = width;
+      const inputBoxHeight = lineSpacing * (inputLines.length + 1);
+      const inputBoxX = 0;
+      const inputBoxY = height - inputBoxHeight;
+      const bubbleRadius = padding;
+      const inputBubbleX = inputBoxX + margin;
+      const inputBubbleY = inputBoxY + margin;
+      const inputBubbleWidth = inputBoxWidth - margin - margin;
+      const inputBubbleHeight = inputBoxHeight - margin - margin;
 
-        // Draw input box
-        const inputLines = calculateLines(maxInputTextWidth, inputText)
+      const maxMessageTextWidth = width - margin - margin - padding - padding - margin;
 
-        // const lines = calculateLines(inputText, messages);
-        // lines.forEach((line, i) => {
-        //     const textY = i * stripeHeight;
-        //     if (line.align === "right") {
-        //         ctx.textAlign = "right";
-        //         ctx.fillText(line.text, width-8, textY);
-        //     } else {
-        //         ctx.textAlign = "left";
-        //         ctx.fillText(line.text, 8, textY);
-        //     }
-        // })
 
-        // Draw messages
+      // Clear canvas
+      ctx.clearRect(0, 0, width, height);
 
-        // Draw blinking cursor
-        // if (blinkState) {
-        //     const inputPadding = 8;
+      // Draw input box
+      ctx.fillStyle = inputBoxColor;
+      ctx.fillRect(inputBoxX, inputBoxY, inputBoxWidth, inputBoxHeight);
 
-        //     const beforeCursor = inputText.slice(0, cursorIndex);
-        //     const cursorX = inputPadding + ctx.measureText(beforeCursor).width;
-        //     ctx.beginPath();
-        //     ctx.moveTo(cursorX, canvas.height - inputBoxHeight + 6);
-        //     ctx.lineTo(cursorX, canvas.height - inputPadding - 6);
-        //     ctx.strokeStyle = "#000";
-        //     ctx.stroke();
-        // }
+      // Draw input bubble
+      drawRoundedRect(inputBubbleX, inputBubbleY, inputBubbleWidth, inputBubbleHeight, bubbleRadius, inputBubbleColor);
+
+      // Draw input lines
+      for (let i = 0; i < inputLines.length; i++) {
+        const x = inputBubbleX + padding;
+        const y = inputBubbleY + padding + (i * lineSpacing);
+        console.log({y, inputBubbleY})
+        ctx.fillStyle = 'black';
+        ctx.fillText(inputLines[i], x, y);
+      }
+      // drawInputLines();
+
+      // const lines = calculateLines(inputText, messages);
+      // lines.forEach((line, i) => {
+      //     const textY = i * stripeHeight;
+      //     if (line.align === "right") {
+      //         ctx.textAlign = "right";
+      //         ctx.fillText(line.text, width-8, textY);
+      //     } else {
+      //         ctx.textAlign = "left";
+      //         ctx.fillText(line.text, 8, textY);
+      //     }
+      // })
+
+      // Draw messages
+      // drawMessages();
+
+      // Draw blinking cursor
+      // if (blinkState) {
+      //     const inputPadding = 8;
+
+      //     const beforeCursor = inputText.slice(0, cursorIndex);
+      //     const cursorX = inputPadding + ctx.measureText(beforeCursor).width;
+      //     ctx.beginPath();
+      //     ctx.moveTo(cursorX, canvas.height - inputBoxHeight + 6);
+      //     ctx.lineTo(cursorX, canvas.height - inputPadding - 6);
+      //     ctx.strokeStyle = "#000";
+      //     ctx.stroke();
+      // }
     }
 
     document.addEventListener("keydown", (e) => {
@@ -165,7 +229,7 @@
         }
       } else if (e.key === "Enter") {
         if (inputText.trim()) {
-          messages.push({from: "me", text: inputText.trim()});
+          messages.push({ from: "me", text: inputText.trim() });
           inputText = "";
           cursorIndex = 0;
         }
@@ -192,4 +256,5 @@
     draw();
   </script>
 </body>
+
 </html>
