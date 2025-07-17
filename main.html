@@ -26,7 +26,6 @@
     const lines = [
         "",
         "",
-        "",
         "Hey, how's it going?",
         "",
         "",
@@ -36,15 +35,22 @@
         "I'm good, thanks.",
         "",
         "",
-        "Good to hear.",
+        "How's the wife and kids?",
         "",
         "",
-        "yeah yo",
+        "They're great! Just got back from vacation",
+        "in the Poconos.",
         "",
     ];
     lines.forEach((line, i) => {
-        const textY = i * stripeHeight
-        ctx.fillText(line, 10, textY);
+        const textY = i * stripeHeight;
+        if (i === 2 || i === 8) {
+            ctx.textAlign = "right";
+            ctx.fillText(line, canvas.width-10, textY);
+        } else {
+            ctx.textAlign = "left";
+            ctx.fillText(line, 10, textY);
+        }
     })
     // for (let i = 0; i < stripesCount; i++) {
     //   const textY = i * stripeHeight
