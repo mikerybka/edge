@@ -81,7 +81,7 @@ func main() {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		frame = b
+		frame = graphics.TUI(string(b))
 		refreshClients()
 	})
 	http.HandleFunc("GET /demo.js", func(w http.ResponseWriter, r *http.Request) {

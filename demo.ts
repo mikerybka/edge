@@ -53,7 +53,7 @@ setTimeout(render, 1000)
 // Create a websocket connection to the backend
 const socket = new WebSocket("ws://localhost:3005/demo/updates");
 socket.addEventListener("message", (e: MessageEvent<string>) => {
-    console.log(e)
+    render();
 });
 
 // Loop

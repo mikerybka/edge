@@ -31,5 +31,5 @@ body.innerHTML = `<canvas id="screen" width="${width}" height="${height}"></canv
 setTimeout(render, 1e3);
 const socket = new WebSocket("ws://localhost:3005/demo/updates");
 socket.addEventListener("message", (e) => {
-  console.log(e);
+  render();
 });
