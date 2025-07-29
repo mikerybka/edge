@@ -5,13 +5,6 @@ async function render() {
     const res = await fetch("/demo/frame");
     const buf = await res.arrayBuffer();
     const pixels = new Uint8ClampedArray(buf);
-    let count = 0;
-    pixels.forEach(b => {
-        if (b === 255) {
-            count++;
-        }
-    })
-    console.log(count);
     const imageData = new ImageData(pixels, width, height);
     const canvas = document.getElementById('screen') as HTMLCanvasElement;
     const ctx = canvas.getContext('2d')!;
