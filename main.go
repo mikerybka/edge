@@ -7,16 +7,36 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/gorilla/websocket"
+	"github.com/mikerybka/edge/pkg/graphics"
 	"github.com/mikerybka/util"
 )
 
 var chatWatchers = map[string]map[string]chan *Chat{} // map of chatIDs to subscriptionIDs to channels of Chat pointers
 var chatLocks = map[string]*sync.Mutex{}
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+var frame = graphics.TUI("ABABABABABABABABABABBABABABABBABABBABABABBABBABBABABABBABAABABABABBABABBBABBBBBABAAAABABABABABA")
+var clients = map[string]chan string{}
+
+func refreshClients() {
+	msg := strconv.FormatInt(time.Now().UnixNano(), 10)
+	for _, ch := range clients {
+		ch <- msg
+	}
+}
 
 func main() {
+	writePID()
 	dataDir := util.RequireEnvVar("DATA_DIR")
 	http.HandleFunc("GET /api/chats/{chatID}/update", func(w http.ResponseWriter, r *http.Request) {
 		ch := make(chan *Chat)
@@ -28,6 +48,49 @@ func main() {
 		chatWatchers[chatID][subID] = ch
 		update := <-ch
 		json.NewEncoder(w).Encode(update)
+	})
+	http.HandleFunc("GET /demo", func(w http.ResponseWriter, r *http.Request) {
+		f, err := os.Open("demo.html")
+		if err != nil {
+			panic(err)
+		}
+		io.Copy(w, f)
+	})
+	http.HandleFunc("GET /demo/updates", func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			panic(err)
+		}
+		defer conn.Close()
+		id := util.RandomToken(32)
+		ch := make(chan string)
+		clients[id] = ch
+		defer func() {
+			delete(clients, id)
+		}()
+		for msg := range ch {
+			conn.WriteMessage(1, []byte(msg))
+		}
+	})
+	http.HandleFunc("GET /demo/frame", func(w http.ResponseWriter, r *http.Request) {
+		w.Write(frame)
+	})
+	http.HandleFunc("PUT /demo/frame", func(w http.ResponseWriter, r *http.Request) {
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		frame = b
+		refreshClients()
+	})
+	http.HandleFunc("GET /demo.js", func(w http.ResponseWriter, r *http.Request) {
+		f, err := os.Open("demo.js")
+		if err != nil {
+			panic(err)
+		}
+		w.Header().Add("Content-Type", "application/javascript")
+		io.Copy(w, f)
 	})
 	http.HandleFunc("GET /chat.js", func(w http.ResponseWriter, r *http.Request) {
 		f, err := os.Open("chat.js")
@@ -160,4 +223,13 @@ func listJSONFiles(path string) ([]string, error) {
 		}
 	}
 	return res, nil
+}
+
+func writePID() error {
+	pidFile := os.Getenv("PID_FILE")
+	if pidFile != "" {
+		pid := os.Getpid()
+		return os.WriteFile(pidFile, []byte(strconv.Itoa(pid)), os.ModePerm)
+	}
+	return nil
 }
