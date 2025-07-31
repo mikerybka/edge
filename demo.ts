@@ -1,5 +1,7 @@
-const width = 640;
-const height = 480;
+// const width = 640;
+const width = 320;
+// const height = 480;
+const height = 240;
 
 async function render() {
     const res = await fetch("/demo/frame");

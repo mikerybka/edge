@@ -1,8 +1,11 @@
 package graphics
 
-const width, height = 640, 480
+// const width, height = 640, 480
+const width, height = 320, 240
 const numPixels = width * height
-const cols, rows = 80, 30
+
+// const cols, rows = 80, 30
+const cols, rows = 40, 15
 const charWidth, charHeight = 8, 16
 
 func TUI(s string) []byte {
